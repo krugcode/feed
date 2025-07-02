@@ -1,0 +1,56 @@
+package main
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+			<link href="/assets/css/output.css" rel="stylesheet"/>
+			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+		</head>
+		<body>
+			<main class="min-h-screen">
+				<div class="container mx-auto px-4 py-8 space-y-8">
+					<div class="flex gap-4">
+						<div class="flex flex-col gap-1">
+							<h1 class="text-4xl font-bold text-foreground">The Feed</h1>
+							<p class="text-lg text-muted-foreground">Serving slop</p>
+						</div>
+					</div>
+					{ children... }
+				</div>
+			</main>
+			// templUI JavaScript initialization for HTMX
+			<script>
+			// Re-initialize templUI components after HTMX swaps
+			document.body.addEventListener("htmx:afterSwap", (e) => {
+				if (window.templUI) {
+					Object.values(window.templUI).forEach(comp => {
+						comp.init?.(e.detail.elt);
+					});
+				}
+			});
+
+			// Re-initialize components after out-of-band swaps
+			document.body.addEventListener("htmx:oobAfterSwap", (e) => {
+				if (window.templUI) {
+					Object.values(window.templUI).forEach(comp => {
+						comp.init?.(e.detail.target);
+					});
+				}
+			});
+
+			// Cleanup before swap (for components with event listeners)
+			document.body.addEventListener("htmx:beforeSwap", (e) => {
+				if (window.templUI) {
+					Object.values(window.templUI).forEach(comp => {
+						comp.cleanup?.(e.detail.target);
+					});
+				}
+			});
+		</script>
+		</body>
+	</html>
+}
