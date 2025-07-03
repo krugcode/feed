@@ -1,5 +1,7 @@
 tmp
-
+.env
 *.db
 
 db/bin
+
+MetaIntegration.md

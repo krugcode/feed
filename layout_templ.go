@@ -105,7 +105,7 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</head><body><main class=\"min-h-screen\"><div class=\"container max-w-2xl mx-auto px-8 py-16 space-y-8\"><div class=\"pb-8 flex justify-between items-end w-full\"><div class=\"flex h-full gap-3 items-end\"><div class=\"h-full w-24\"><img src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</head><body><main class=\"min-h-screen\"><div class=\"container max-w-[800px] mx-auto px-8 py-16 space-y-8\"><div class=\"pb-8 flex justify-between items-end w-full\"><div class=\"flex h-full gap-3 items-end\"><div class=\"h-full w-24\"><img src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

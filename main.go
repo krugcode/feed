@@ -46,6 +46,10 @@ func main() {
 	r.HandleFunc("/collections", app.collectionsPage).Methods("GET")
 	r.HandleFunc("/about", app.aboutPage).Methods("GET")
 
+	// admin api routes
+	// TODO: setup link, collection, context, post, tag & analytic mgmt through API /admin/*
+	// middleware auth via env vars 4 now
+
 	log.Println("Server starting on :8090")
 	log.Fatal(http.ListenAndServe(":8092", r))
 }
