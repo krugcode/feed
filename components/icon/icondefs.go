@@ -1,5 +1,6 @@
 // templui component icon - version: v0.81.1 installed by templui v0.81.1
 package icon
+
 // This file is auto generated
 // Using Lucide icons version 0.507.0
 var ALargeSmall = Icon("a-large-small")
@@ -367,6 +368,7 @@ var CirclePlay = Icon("circle-play")
 var CircleParking = Icon("circle-parking")
 var CirclePause = Icon("circle-pause")
 var CirclePercent = Icon("circle-percent")
+var CircleQuestionMark = Icon("circle-question-mark")
 var Clock7 = Icon("clock-7")
 var CircleSmall = Icon("circle-small")
 var CircleStop = Icon("circle-stop")

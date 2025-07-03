@@ -1,0 +1,160 @@
+package main
+
+import (
+	"feed/components/button"
+	"feed/components/form"
+	"feed/components/icon"
+	"feed/components/input"
+	"feed/components/selectbox"
+)
+
+templ FeedPage() {
+	@Layout("The Feed", "feed", LayoutOptions{
+		Description: "Prepare the trough, it's time for slop",
+		Meta: []MetaTags{
+			{Name: "description", Content: "A collection of software, drawings and other useless nonsense."},
+			{Name: "keywords", Content: "blog, web development, art, comics, character art, sveltekit, golang, programming, tech, krugg, krug, dngn, draw_dngn, draw dngn, instagram, github"},
+			{Name: "author", Content: "krugg.dev"},
+			{Name: "robots", Content: "index, follow"},
+			{Name: "theme-color", Content: "#000000"},
+		},
+		Properties: []OGProperty{
+			{Property: "og:title", Content: "The Feed - krugg.dev"},
+			{Property: "og:description", Content: "A collection of software, drawings and other useless nonsense."},
+			{Property: "og:type", Content: "website"},
+			{Property: "og:url", Content: "https://krugg.dev"},
+			{Property: "og:image", Content: "https://krugg.dev/assets/images/og-home.jpg"},
+			{Property: "og:image:width", Content: "1200"},
+			{Property: "og:image:height", Content: "630"},
+			{Property: "og:site_name", Content: "krugg.dev"},
+			{Property: "twitter:card", Content: "summary_large_image"},
+			{Property: "twitter:title", Content: "The Feed - krugg.dev"},
+			{Property: "twitter:description", Content: "A collection of software, drawings and other useless nonsense."},
+			{Property: "twitter:image", Content: "https://krugg.dev/assets/images/twitter-feed-card.png"},
+		},
+	}) {
+		@FeedPageContent()
+	}
+}
+
+templ FeedPageContent() {
+	<div class=" flex flex-col gap-5">
+		<!--
+		<div class="flex flex-row gap-2">
+			@SearchInput()
+			@button.Button(button.Props{Variant: "outline", Class: "gap-3"}) {
+				Search
+				@icon.Search(icon.Props{
+					Size: 16,
+				})
+			}
+		</div>-->
+		<div class="bg-card rounded-lg shadow-sm border border-border p-6">
+			<h2 class="text-xl font-semibold text-card-foreground mb-4">Getting Started</h2>
+			<p class="text-muted-foreground mb-4">
+				Your blog is now running with templUI components!
+			</p>
+			@button.Button() {
+				Get Started
+			}
+		</div>
+	</div>
+}
+
+templ SearchInput() {
+	<div class="w-full max-w-sm">
+		@input.Input(input.Props{
+			Type:        input.TypeText,
+			Placeholder: "Search the posts",
+		},
+		)
+	</div>
+}
+
+templ SelectContext() {
+	<div class="w-[150px]">
+		@form.Item() {
+			@selectbox.SelectBox() {
+				@selectbox.Trigger(selectbox.TriggerProps{
+					ID:       "select-context",
+					Name:     "context",
+					Required: true,
+					HasError: true,
+				}) {
+					@selectbox.Value(selectbox.ValueProps{
+						Placeholder: "Select a fruit",
+					})
+				}
+				@selectbox.Content() {
+					@selectbox.Item(selectbox.ItemProps{
+						Value:    "All",
+						Selected: true,
+					}) {
+						All
+					}
+					@selectbox.Item(selectbox.ItemProps{
+						Value: "krug-dev",
+					}) {
+						Krug Dev
+					}
+					@selectbox.Item(selectbox.ItemProps{
+						Value: "dngn",
+					}) {
+						DNGN 
+					}
+				}
+			}
+		}
+	</div>
+}
+
+templ FilterIcon() {
+	@icon.ListFilter()
+}
+
+templ FilterTags() {
+	<div class="w-full ">
+		@selectbox.SelectBox() {
+			@selectbox.Trigger(selectbox.TriggerProps{ShowPills: true}) {
+				@selectbox.Value(selectbox.ValueProps{
+					Placeholder: "Filter by tags..",
+				})
+			}
+			@selectbox.Content() {
+				@selectbox.Group() {
+					@selectbox.Label() {
+						Contexts
+					}
+					@selectbox.Item(selectbox.ItemProps{
+						Value: "krug-codes",
+					}) {
+						Krug
+					}
+					@selectbox.Item(selectbox.ItemProps{
+						Value: "dngn",
+					}) {
+						Draw DNGN
+					}
+					@selectbox.Label() {
+						Tags
+					}
+					@selectbox.Item(selectbox.ItemProps{
+						Value: "blueberry",
+					}) {
+						Blueberry
+					}
+					@selectbox.Item(selectbox.ItemProps{
+						Value: "grapes",
+					}) {
+						Grapes
+					}
+					@selectbox.Item(selectbox.ItemProps{
+						Value: "pineapple",
+					}) {
+						Pineapple
+					}
+				}
+			}
+		}
+	</div>
+}

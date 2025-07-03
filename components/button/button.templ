@@ -12,6 +12,7 @@ type Type string
 
 const (
 	VariantDefault     Variant = "default"
+	VariantDark        Variant = "dark"
 	VariantDestructive Variant = "destructive"
 	VariantOutline     Variant = "outline"
 	VariantSecondary   Variant = "secondary"
@@ -113,7 +114,9 @@ func (b Props) variantClasses() string {
 	case VariantGhost:
 		return "hover:bg-accent hover:text-accent-foreground"
 	case VariantLink:
-		return "text-primary underline-offset-4 hover:underline"
+		return "text-primary underline-none hover:text-primary/90"
+	case VariantDark:
+		return "bg-dark text-dark-foreground hover:bg-muted"
 	default:
 		return "bg-primary text-primary-foreground hover:bg-primary/90"
 	}

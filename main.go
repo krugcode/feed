@@ -42,9 +42,12 @@ func main() {
 
 	// routes
 	r.HandleFunc("/", app.homePage).Methods("GET")
+	r.HandleFunc("/links", app.linksPage).Methods("GET")
+	r.HandleFunc("/collections", app.collectionsPage).Methods("GET")
+	r.HandleFunc("/about", app.aboutPage).Methods("GET")
 
 	log.Println("Server starting on :8090")
-	log.Fatal(http.ListenAndServe(":8090", r))
+	log.Fatal(http.ListenAndServe(":8092", r))
 }
 
 func (app *App) initDB() {
@@ -72,6 +75,21 @@ func (app *App) initDB() {
 }
 
 func (app *App) homePage(w http.ResponseWriter, r *http.Request) {
-	component := HomePage()
+	component := FeedPage()
+	component.Render(r.Context(), w)
+}
+
+func (app *App) linksPage(w http.ResponseWriter, r *http.Request) {
+	component := LinksPage()
+	component.Render(r.Context(), w)
+}
+
+func (app *App) collectionsPage(w http.ResponseWriter, r *http.Request) {
+	component := CollectionsPage()
+	component.Render(r.Context(), w)
+}
+
+func (app *App) aboutPage(w http.ResponseWriter, r *http.Request) {
+	component := AboutPage()
 	component.Render(r.Context(), w)
 }
