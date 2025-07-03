@@ -3,6 +3,6 @@ tmp
 !.env.example
 *.db
 
-db/bin
+bin
 
 MetaIntegration.md
