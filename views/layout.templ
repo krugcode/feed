@@ -1,0 +1,171 @@
+package views
+
+import (
+	"feed/components/button"
+	"feed/components/icon"
+	"feed/components/popover"
+	"feed/components/selectbox"
+	"feed/components/tooltip"
+	"feed/utils"
+	"fmt"
+)
+
+type MetaTags struct {
+	Name    string
+	Content string
+}
+
+type OGProperty struct {
+	Property string
+	Content  string
+}
+type LayoutOptions struct {
+	Description string
+	Meta        []MetaTags
+	Properties  []OGProperty
+}
+
+templ Layout(title string, disableNavButton string, opts ...LayoutOptions) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } - krugg.dev</title>
+			<link rel="icon" type="image/png" href={ utils.AssetURL("/assets/images/favicon.png") }/>
+			<link href={ utils.AssetURL("/assets/css/output.css") } rel="stylesheet"/>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<!-- Fonts -->
+			<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+			@selectbox.Script()
+			@popover.Script()
+		</head>
+		<body>
+			<main class="min-h-screen">
+				<div class="container max-w-[800px] mx-auto px-8 py-16 space-y-8">
+					<div class="pb-8 flex justify-between items-end w-full">
+						<div class="flex h-full gap-3 items-end">
+							<div class="h-full w-24">
+								<img
+									src={ utils.AssetURL("/assets/images/logo.png") }
+									alt="Krug's Feed Logo"
+									class="w-full h-full object-cover"
+								/>
+							</div>
+							<div class="flex flex-col">
+								<h1 class="font-gotisch text-5xl font-bold text-foreground mb-0">{ title }</h1>
+								if len(opts) > 0 && opts[0].Description != "" {
+									<p class="text-md text-muted-foreground mb-0">{ opts[0].Description }</p>
+								}
+							</div>
+						</div>
+						<div class="h-full flex flex-col gap-1 justify-end items-end">
+							<h4 class="text-right w-full font-gotisch text-xs">Click On Things</h4>
+							<div class="flex flex-row gap-1 p-1 border rounded-lg">
+								@NavButtonGroup(disableNavButton)
+							</div>
+						</div>
+					</div>
+					{ children... }
+				</div>
+			</main>
+			// templUI JavaScript initialization for HTMX
+			<script>
+			// Re-initialize templUI components after HTMX swaps
+			document.body.addEventListener("htmx:afterSwap", (e) => {
+				if (window.templUI) {
+					Object.values(window.templUI).forEach(comp => {
+						comp.init?.(e.detail.elt);
+					});
+				}
+			});
+
+			// Re-initialize components after out-of-band swaps
+			document.body.addEventListener("htmx:oobAfterSwap", (e) => {
+				if (window.templUI) {
+					Object.values(window.templUI).forEach(comp => {
+						comp.init?.(e.detail.target);
+					});
+				}
+			});
+
+			// Cleanup before swap (for components with event listeners)
+			document.body.addEventListener("htmx:beforeSwap", (e) => {
+				if (window.templUI) {
+					Object.values(window.templUI).forEach(comp => {
+						comp.cleanup?.(e.detail.target);
+					});
+				}
+			});
+		</script>
+		</body>
+	</html>
+}
+
+type Navigation struct {
+	Name string
+	Href string
+	Icon templ.Component
+}
+
+var navRoutes = []Navigation{
+	{Name: "feed", Href: "/", Icon: icon.Rows3(icon.Props{Size: 16})},
+	{Name: "collections", Href: "/collections", Icon: icon.SquareLibrary(icon.Props{Size: 16})},
+	{Name: "links", Href: "/links", Icon: icon.Link(icon.Props{Size: 16})},
+	{Name: "about", Href: "/about", Icon: icon.CircleQuestionMark(icon.Props{Size: 16})},
+}
+
+templ NavButtonGroup(disableButton string) {
+	for _, route := range navRoutes {
+		if route.Name == disableButton {
+			@tooltip.Tooltip() {
+				@tooltip.Trigger(tooltip.TriggerProps{
+					For: fmt.Sprintf("tooltip-nav-%s", route.Name),
+				}) {
+					@button.Button(button.Props{
+						Variant:  "link",
+						Disabled: true,
+						Size:     "icon",
+						Href:     route.Href,
+					}) {
+						<span class="sr-only">{ route.Name }</span>
+						@route.Icon
+					}
+				}
+				@tooltip.Content(tooltip.ContentProps{
+					ID:            fmt.Sprintf("tooltip-nav-%s", route.Name),
+					Position:      tooltip.PositionBottom,
+					HoverDelay:    150,
+					HoverOutDelay: 100,
+				}) {
+					{ route.Name }
+				}
+			}
+		} else {
+			@tooltip.Tooltip() {
+				@tooltip.Trigger(tooltip.TriggerProps{
+					For: fmt.Sprintf("tooltip-nav-%s", route.Name),
+				}) {
+					@button.Button(button.Props{
+						Variant: "ghost",
+						Size:    "icon",
+						Href:    route.Href,
+					}) {
+						<span class="sr-only">{ route.Name }</span>
+						@route.Icon
+					}
+				}
+				@tooltip.Content(tooltip.ContentProps{
+					ID:            fmt.Sprintf("tooltip-nav-%s", route.Name),
+					Position:      tooltip.PositionBottom,
+					HoverDelay:    150,
+					HoverOutDelay: 100,
+				}) {
+					{ route.Name }
+				}
+			}
+		}
+	}
+}

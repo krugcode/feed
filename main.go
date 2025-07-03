@@ -1,99 +1,163 @@
 package main
 
 import (
-	"database/sql"
+	"feed/views"
 	"log"
-	"net/http"
+	"os"
 
-	"time"
+	_ "feed/migrations"
 
-	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
-type Post struct {
-	ID       int       `json:"id"`
-	Title    string    `json:"title"`
-	Subtitle string    `json:"subtitle"`
-	Tags     []string  `json:"tags"`
-	Content  string    `json:"content"`
-	Slug     string    `json:"slug"`
-	Created  time.Time `json:"created"`
-}
-
-type FrontMatter struct {
-	Title    string   `yaml:"title"`
-	Subtitle string   `yaml:"subtitle"`
-	Tags     []string `yaml:"tags"`
-}
-
 type App struct {
-	db *sql.DB
+	pb *pocketbase.PocketBase
 }
 
 func main() {
-	app := &App{}
-	app.initDB()
-
-	r := mux.NewRouter()
-
-	// static assets
-	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))
-
-	// routes
-	r.HandleFunc("/", app.homePage).Methods("GET")
-	r.HandleFunc("/links", app.linksPage).Methods("GET")
-	r.HandleFunc("/collections", app.collectionsPage).Methods("GET")
-	r.HandleFunc("/about", app.aboutPage).Methods("GET")
-
-	// admin api routes
-	// TODO: setup link, collection, context, post, tag & analytic mgmt through API /admin/*
-	// middleware auth via env vars 4 now
-
-	log.Println("Server starting on :8090")
-	log.Fatal(http.ListenAndServe(":8092", r))
-}
-
-func (app *App) initDB() {
-	var err error
-	app.db, err = sql.Open("sqlite3", "./blog.db")
-	if err != nil {
-		log.Fatal(err)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("No .env file found or error loading it: %v", err)
+		godotenv.Load(".env")
 	}
+	pb := pocketbase.New()
 
-	createTableSQL := `
-	CREATE TABLE IF NOT EXISTS posts (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		title TEXT NOT NULL,
-		subtitle TEXT,
-		tags TEXT,
-		content TEXT NOT NULL,
-		slug TEXT UNIQUE NOT NULL,
-		created DATETIME DEFAULT CURRENT_TIMESTAMP
-	);`
+	app := &App{pb: pb}
 
-	_, err = app.db.Exec(createTableSQL)
-	if err != nil {
+	autoMigrate := os.Getenv("AUTO_MIGRATE") != "false"
+	migratecmd.MustRegister(pb, pb.RootCmd, migratecmd.Config{
+		Automigrate: autoMigrate,
+	})
+
+	pb.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		// custom routes (for views)
+		app.setupRoutes(se)
+		return se.Next()
+	})
+	app.setupHooks()
+	if err := pb.Start(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func (app *App) homePage(w http.ResponseWriter, r *http.Request) {
-	component := FeedPage()
-	component.Render(r.Context(), w)
+func (app *App) setupRoutes(se *core.ServeEvent) {
+	se.Router.GET("/", app.homePage)
+	se.Router.GET("/links", app.linksPage)
+	se.Router.GET("/collections", app.collectionsPage)
+	se.Router.GET("/about", app.aboutPage)
+
+	// example api usage for later
+	// se.Router.GET("/api/posts", app.apiGetPosts)
+	// se.Router.GET("/api/posts/{slug}", app.apiGetPostBySlug)
 }
 
-func (app *App) linksPage(w http.ResponseWriter, r *http.Request) {
-	component := LinksPage()
-	component.Render(r.Context(), w)
+func (app *App) setupHooks() {
+	// example: validate posts before creation
+	// app.pb.OnRecordCreateRequest("posts").BindFunc(func(re *core.RecordRequestEvent) error {
+	// 	// Custom validation logic here
+	// 	log.Printf("Creating new post: %s", re.Record.GetString("title"))
+	// 	return re.Next()
+	// })
+	//
+	// // example: update click count for collections
+	// app.pb.OnRecordViewRequest("collections").BindFunc(func(re *core.RecordViewRequestEvent) error {
+	// 	// Increment clicked_count when collection is viewed
+	// 	currentCount := re.Record.GetInt("clicked_count")
+	// 	re.Record.Set("clicked_count", currentCount+1)
+	// 	app.pb.SaveRecord(re.Record)
+	// 	return re.Next()
+	// })
 }
 
-func (app *App) collectionsPage(w http.ResponseWriter, r *http.Request) {
-	component := CollectionsPage()
-	component.Render(r.Context(), w)
+func (app *App) homePage(re *core.RequestEvent) error {
+	posts, err := app.pb.FindRecordsByFilter(
+		"posts",
+		"visible = true",
+		"-created",
+		10,
+		0,
+	)
+	if err != nil {
+		log.Printf("Error fetching posts: %v", err)
+	}
+
+	component := views.FeedPage(posts)
+	return component.Render(re.Request.Context(), re.Response)
 }
 
-func (app *App) aboutPage(w http.ResponseWriter, r *http.Request) {
-	component := AboutPage()
-	component.Render(r.Context(), w)
+func (app *App) linksPage(re *core.RequestEvent) error {
+	links, err := app.pb.FindRecordsByFilter(
+		"links",
+		"is_visible = true",
+		"order",
+		50,
+		0)
+	if err != nil {
+		log.Printf("Error fetching links: %v", err)
+	}
+
+	component := views.LinksPage(links)
+	return component.Render(re.Request.Context(), re.Response)
 }
+
+func (app *App) collectionsPage(re *core.RequestEvent) error {
+	collections, err := app.pb.FindRecordsByFilter(
+		"collections",
+		"",         // no filter
+		"-created", // sort by created desc
+		20,         // limit
+		0,          // offset
+
+	)
+	if err != nil {
+		log.Printf("Error fetching collections: %v", err)
+	}
+
+	component := views.CollectionsPage(collections)
+	return component.Render(re.Request.Context(), re.Response)
+}
+
+func (app *App) aboutPage(re *core.RequestEvent) error {
+	component := views.AboutPage()
+	return component.Render(re.Request.Context(), re.Response)
+}
+
+// example of some api routes
+// func (app *App) apiGetPosts(re *core.RequestEvent) error {
+// 	posts, err := app.pb.FindRecordsByFilter(
+// 		"posts",
+// 		"visible = true",
+// 		"-created",
+// 		20,
+// 		0,
+// 		"tags,contexts", // Expand relations
+// 	)
+// 	if err != nil {
+// 		return re.BadRequestError("Failed to fetch posts", err)
+// 	}
+//
+// 	return re.JSON(200, map[string]any{
+// 		"posts": posts,
+// 	})
+// }
+//
+// func (app *App) apiGetPostBySlug(re *core.RequestEvent) error {
+// 	slug := re.Request().PathValue("slug")
+//
+// 	post, err := app.pb.FindFirstRecordByFilter(
+// 		"posts",
+// 		"slug = {:slug} && visible = true",
+// 		map[string]any{"slug": slug},
+// 		"tags,contexts", // Expand relations
+// 	)
+// 	if err != nil {
+// 		return re.NotFoundError("Post not found", err)
+// 	}
+//
+// 	return re.JSON(200, map[string]any{
+// 		"post": post,
+// 	})
+// }

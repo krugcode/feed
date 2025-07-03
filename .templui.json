@@ -2,6 +2,6 @@
   "componentsDir": "components",
   "utilsDir": "utils",
   "moduleName": "feed",
-  "jsDir": "assets/js",
+  "jsDir": "pb_public/assets/js",
   "jsPublicPath": "/assets/js"
 }

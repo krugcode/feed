@@ -1,5 +1,6 @@
 tmp
 .env
+!.env.example
 *.db
 
 db/bin
