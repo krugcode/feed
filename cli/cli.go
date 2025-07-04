@@ -115,7 +115,7 @@ func postMarkdown(appURL, token, filename string) error {
 
 	fmt.Printf("%sPosting %s to your feed...%s\n", ColorBlue, filename, ColorReset)
 
-	url := appURL + "/markdown/posts"
+	url := appURL + "/api/markdown/posts"
 	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
@@ -171,7 +171,7 @@ func updateMarkdown(appURL, token, postID, filename string) error {
 
 	fmt.Printf("%sUpdating post %s with %s...%s\n", ColorBlue, postID, filename, ColorReset)
 
-	url := appURL + "/markdown/posts/" + postID
+	url := appURL + "/api/markdown/posts/" + postID
 	req, err := http.NewRequest("PUT", url, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)

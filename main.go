@@ -2,7 +2,6 @@ package main
 
 import (
 	"feed/views"
-	"fmt"
 	"log"
 	"os"
 
@@ -62,17 +61,17 @@ func (app *App) setupRoutes(se *core.ServeEvent) {
 	se.Router.GET("/about", app.aboutPage)
 
 	// api usage for posting
-	se.Router.POST("/markdown/posts", app.createPostFromMarkdown)
-	se.Router.PUT("/markdown/posts/{id}", app.updatePostFromMarkdown)
+	se.Router.POST("/api/markdown/posts", app.createPostFromMarkdown).Bind(apis.RequireSuperuserAuth())
+	se.Router.PUT("/api/markdown/posts/{id}", app.updatePostFromMarkdown).Bind(apis.RequireSuperuserAuth())
 }
 
 func (app *App) setupHooks() {
 	// example: validate posts before creation
-	app.pb.OnRecordCreateRequest("posts").BindFunc(func(re *core.RecordRequestEvent) error {
-		// Custom validation logic here
-		log.Printf("Creating new post: %s", re.Record.GetString("title"))
-		return re.Next()
-	})
+	// app.pb.OnRecordCreateRequest("posts").BindFunc(func(re *core.RecordRequestEvent) error {
+	// 	// Custom validation logic here
+	// 	log.Printf("Creating new post: %s", re.Record.GetString("title"))
+	// 	return re.Next()
+	// })
 	//
 	// // example: update click count for collections
 	// app.pb.OnRecordViewRequest("collections").BindFunc(func(re *core.RecordViewRequestEvent) error {
@@ -90,24 +89,14 @@ func (app *App) setupHooks() {
 //
 // }
 func (app *App) createPostFromMarkdown(re *core.RequestEvent) error {
-	fmt.Println("Creating markdown post")
-	if err := app.requireSuperuserAuth(re); err != nil {
-		return err
-	}
-
 	return app.processPost(re, false, "")
 }
 
 func (app *App) updatePostFromMarkdown(re *core.RequestEvent) error {
-	if err := app.requireSuperuserAuth(re); err != nil {
-		return err
-	}
-
 	postID := re.Request.PathValue("id")
 	if postID == "" {
 		return re.BadRequestError("Post ID is required", nil)
 	}
-
 	return app.processPost(re, true, postID)
 }
 
