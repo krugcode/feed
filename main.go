@@ -1,7 +1,7 @@
 package main
 
 import (
-	"feed/views"
+	"feed/pb_public/views"
 	"log"
 	"os"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
@@ -33,6 +34,7 @@ func main() {
 	})
 
 	pb.OnServe().BindFunc(func(se *core.ServeEvent) error {
+
 		// custom routes (for views)
 		app.setupRoutes(se)
 		return se.Next()
@@ -44,7 +46,16 @@ func main() {
 }
 
 func (app *App) setupRoutes(se *core.ServeEvent) {
-	se.Router.GET("/", app.homePage)
+
+	se.Router.GET("/assets/{path...}", func(e *core.RequestEvent) error {
+		//asset debug
+		// requestedPath := e.Request.PathValue("path")
+		// log.Printf("Static file requested: /assets/%s", requestedPath)
+
+		//static handler
+		return apis.Static(os.DirFS("./pb_public/assets"), false)(e)
+	})
+	se.Router.GET("/{$}", app.homePage)
 	se.Router.GET("/links", app.linksPage)
 	se.Router.GET("/collections", app.collectionsPage)
 	se.Router.GET("/about", app.aboutPage)
@@ -72,10 +83,16 @@ func (app *App) setupHooks() {
 	// })
 }
 
+// func (app *App) handleAssets(re *core.RequestEvent) error {
+// 	path := re.Request.PathValue("path")
+// 	error := apis.Static(os.DirFS(fmt.Sprintf("/pb_public/assets/%s", path)), false)
+//
+// }
+
 func (app *App) homePage(re *core.RequestEvent) error {
 	posts, err := app.pb.FindRecordsByFilter(
 		"posts",
-		"visible = true",
+		"is_visible = true",
 		"-created",
 		10,
 		0,

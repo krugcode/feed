@@ -2,7 +2,9 @@ tmp
 .env
 !.env.example
 *.db
-
+pb_data
 bin
 
+
+#random stuff
 MetaIntegration.md
