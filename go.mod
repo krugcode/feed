@@ -8,6 +8,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/pocketbase/pocketbase v0.28.4
+	gopkg.in/yaml.v2 v2.2.2
 )
 
 require (

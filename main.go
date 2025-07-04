@@ -1,7 +1,8 @@
 package main
 
 import (
-	"feed/pb_public/views"
+	"feed/views"
+	"fmt"
 	"log"
 	"os"
 
@@ -60,18 +61,18 @@ func (app *App) setupRoutes(se *core.ServeEvent) {
 	se.Router.GET("/collections", app.collectionsPage)
 	se.Router.GET("/about", app.aboutPage)
 
-	// example api usage for later
-	// se.Router.GET("/api/posts", app.apiGetPosts)
-	// se.Router.GET("/api/posts/{slug}", app.apiGetPostBySlug)
+	// api usage for posting
+	se.Router.POST("/markdown/posts", app.createPostFromMarkdown)
+	se.Router.PUT("/markdown/posts/{id}", app.updatePostFromMarkdown)
 }
 
 func (app *App) setupHooks() {
 	// example: validate posts before creation
-	// app.pb.OnRecordCreateRequest("posts").BindFunc(func(re *core.RecordRequestEvent) error {
-	// 	// Custom validation logic here
-	// 	log.Printf("Creating new post: %s", re.Record.GetString("title"))
-	// 	return re.Next()
-	// })
+	app.pb.OnRecordCreateRequest("posts").BindFunc(func(re *core.RecordRequestEvent) error {
+		// Custom validation logic here
+		log.Printf("Creating new post: %s", re.Record.GetString("title"))
+		return re.Next()
+	})
 	//
 	// // example: update click count for collections
 	// app.pb.OnRecordViewRequest("collections").BindFunc(func(re *core.RecordViewRequestEvent) error {
@@ -83,11 +84,32 @@ func (app *App) setupHooks() {
 	// })
 }
 
-// func (app *App) handleAssets(re *core.RequestEvent) error {
-// 	path := re.Request.PathValue("path")
-// 	error := apis.Static(os.DirFS(fmt.Sprintf("/pb_public/assets/%s", path)), false)
+//	func (app *App) handleAssets(re *core.RequestEvent) error {
+//		path := re.Request.PathValue("path")
+//		error := apis.Static(os.DirFS(fmt.Sprintf("/pb_public/assets/%s", path)), false)
 //
 // }
+func (app *App) createPostFromMarkdown(re *core.RequestEvent) error {
+	fmt.Println("Creating markdown post")
+	if err := app.requireSuperuserAuth(re); err != nil {
+		return err
+	}
+
+	return app.processPost(re, false, "")
+}
+
+func (app *App) updatePostFromMarkdown(re *core.RequestEvent) error {
+	if err := app.requireSuperuserAuth(re); err != nil {
+		return err
+	}
+
+	postID := re.Request.PathValue("id")
+	if postID == "" {
+		return re.BadRequestError("Post ID is required", nil)
+	}
+
+	return app.processPost(re, true, postID)
+}
 
 func (app *App) homePage(re *core.RequestEvent) error {
 	posts, err := app.pb.FindRecordsByFilter(
