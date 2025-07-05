@@ -4,7 +4,9 @@ subtitle: AI chats are the new todo app
 tags: [shovel.chat, ai chat, vercel sdk, ai tools]
 contexts: [Krugg, DNGN]
 collections: [Test, Another Test]
-is_visible: false
+is_visible: true
+featured_image: /home/jared/Pictures/artworks-000222652655-5lls50-t500x500.jpg
+summary: A test of basic fuctionality
 # some examples of when crossposting is required, if not then ignore:
 # crosspost_instagram: true
 # crosspost_threads: true
