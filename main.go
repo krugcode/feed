@@ -55,7 +55,7 @@ func (app *App) setupRoutes(se *core.ServeEvent) {
 		//static handler
 		return apis.Static(os.DirFS("./pb_public/assets"), false)(e)
 	})
-	se.Router.GET("/{$}", app.homePage)
+	se.Router.GET("/", app.homePage)
 	se.Router.GET("/links", app.linksPage)
 	se.Router.GET("/collections", app.collectionsPage)
 	se.Router.GET("/about", app.aboutPage)
@@ -98,22 +98,6 @@ func (app *App) updatePostFromMarkdown(re *core.RequestEvent) error {
 		return re.BadRequestError("Post ID is required", nil)
 	}
 	return app.processPost(re, true, postID)
-}
-
-func (app *App) homePage(re *core.RequestEvent) error {
-	posts, err := app.pb.FindRecordsByFilter(
-		"posts",
-		"is_visible = true",
-		"-created",
-		10,
-		0,
-	)
-	if err != nil {
-		log.Printf("Error fetching posts: %v", err)
-	}
-
-	component := views.FeedPage(posts)
-	return component.Render(re.Request.Context(), re.Response)
 }
 
 func (app *App) linksPage(re *core.RequestEvent) error {

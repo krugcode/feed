@@ -1,6 +1,7 @@
 package views
 
 import (
+	"feed/components/avatar"
 	"feed/components/button"
 	"feed/components/icon"
 	"feed/components/popover"
@@ -41,12 +42,13 @@ templ Layout(title string, disableNavButton string, opts ...LayoutOptions) {
 			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 			@selectbox.Script()
 			@popover.Script()
+			@avatar.Script()
 		</head>
 		<body>
-			<main class="min-h-screen">
-				<div class="container max-w-[800px] mx-auto px-8 py-16 space-y-8">
-					<div class="pb-8 flex justify-between items-end w-full">
-						<div class="flex h-full gap-3 items-end">
+			<main class="min-h-screen bg-gray-100/20 dark:bg-background">
+				<div class="container max-w-[800px] mx-auto px-4 md:px-8 py-16 space-y-8">
+					<div class="md:pb-8 flex flex-col gap-2 md:flex-row justify-between items-end w-full">
+						<div class="flex w-full h-full gap-3  items-end justify-between md:justify-start">
 							<div class="h-full w-24">
 								<img
 									src={ utils.AssetURL("/assets/images/logo.png") }
@@ -54,21 +56,26 @@ templ Layout(title string, disableNavButton string, opts ...LayoutOptions) {
 									class="w-full h-full object-cover"
 								/>
 							</div>
-							<div class="flex flex-col">
-								<h1 class="font-gotisch text-5xl font-bold text-foreground mb-0">{ title }</h1>
+							<div class="flex flex-col gap-2">
+								<h1 class="font-gotisch text-5xl font-bold text-foreground mb-0 text-right md:text-left leading-7">{ title }</h1>
 								if len(opts) > 0 && opts[0].Description != "" {
-									<p class="text-md text-muted-foreground mb-0">{ opts[0].Description }</p>
+									<p class="text-xs md:text-md text-right md:text-left text-muted-foreground mb-0">{ opts[0].Description }</p>
 								}
 							</div>
 						</div>
-						<div class="h-full flex flex-col gap-1 justify-end items-end">
-							<h4 class="text-right w-full font-gotisch text-xs">Click On Things</h4>
-							<div class="flex flex-row gap-1 p-1 border rounded-lg">
+						<div class="hidden h-full w-full md:w-fit md:flex flex-col gap-1 justify-end items-end">
+							<h4 class="hidden md:block text-right w-full font-gotisch text-xs">Click On Things</h4>
+							<div class=" w-full bg-white dark:bg-background md:w-fit justify-center flex flex-row gap-3 md:gap-1 p-1 border border-primary/15 rounded-lg ">
 								@NavButtonGroup(disableNavButton)
 							</div>
 						</div>
 					</div>
 					{ children... }
+					<div class="relative md:hidden w-full flex justify-center">
+						<div class="fixed bottom-5 flex gap-5 bg-white dark:bg-muted  p-3 rounded-lg shadow-xl border dark:shadow-none">
+							@NavButtonGroup(disableNavButton)
+						</div>
+					</div>
 				</div>
 			</main>
 			// templUI JavaScript initialization for HTMX
@@ -111,10 +118,11 @@ type Navigation struct {
 }
 
 var navRoutes = []Navigation{
-	{Name: "feed", Href: "/", Icon: icon.Rows3(icon.Props{Size: 16})},
-	{Name: "collections", Href: "/collections", Icon: icon.SquareLibrary(icon.Props{Size: 16})},
-	{Name: "links", Href: "/links", Icon: icon.Link(icon.Props{Size: 16})},
-	{Name: "about", Href: "/about", Icon: icon.CircleQuestionMark(icon.Props{Size: 16})},
+	{Name: "feed", Href: "/", Icon: icon.Rows3(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "search", Href: "/search", Icon: icon.Search(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "collections", Href: "/collections", Icon: icon.SquareLibrary(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "links", Href: "/links", Icon: icon.Link(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "about", Href: "/about", Icon: icon.CircleQuestionMark(icon.Props{Size: 16, StrokeWidth: "1px"})},
 }
 
 templ NavButtonGroup(disableButton string) {
@@ -125,6 +133,7 @@ templ NavButtonGroup(disableButton string) {
 					For: fmt.Sprintf("tooltip-nav-%s", route.Name),
 				}) {
 					@button.Button(button.Props{
+						Class:    "opacity-100!",
 						Variant:  "link",
 						Disabled: true,
 						Size:     "icon",

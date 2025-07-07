@@ -1,0 +1,33 @@
+
+package views
+
+import "github.com/pocketbase/pocketbase/core"
+
+templ SearchPage(posts []*core.Record) {
+	@Layout("The Feed", "search", LayoutOptions{
+		Description: "Prepare the trough, it's time for slop",
+		Meta: []MetaTags{
+			{Name: "description", Content: "A collection of software, drawings and other useless nonsense."},
+			{Name: "keywords", Content: "blog, web development, art, comics, character art, sveltekit, golang, programming, tech, krugg, krug, dngn, draw_dngn, draw dngn, instagram, github"},
+			{Name: "author", Content: "krugg.dev"},
+			{Name: "robots", Content: "index, follow"},
+			{Name: "theme-color", Content: "#000000"},
+		},
+		Properties: []OGProperty{
+			{Property: "og:title", Content: "The Feed - krugg.dev"},
+			{Property: "og:description", Content: "A collection of software, drawings and other useless nonsense."},
+			{Property: "og:type", Content: "website"},
+			{Property: "og:url", Content: "https://krugg.dev"},
+			{Property: "og:image", Content: "https://krugg.dev/assets/images/og-home.jpg"},
+			{Property: "og:image:width", Content: "1200"},
+			{Property: "og:image:height", Content: "630"},
+			{Property: "og:site_name", Content: "krugg.dev"},
+			{Property: "twitter:card", Content: "summary_large_image"},
+			{Property: "twitter:title", Content: "The Feed - krugg.dev"},
+			{Property: "twitter:description", Content: "A collection of software, drawings and other useless nonsense."},
+			{Property: "twitter:image", Content: "https://krugg.dev/assets/images/twitter-feed-card.png"},
+		},
+	}) {
+		@Posts(posts)
+	}
+}

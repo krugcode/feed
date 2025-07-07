@@ -9,6 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"feed/components/avatar"
 	"feed/components/button"
 	"feed/components/icon"
 	"feed/components/popover"
@@ -61,7 +62,7 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 34, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 35, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -74,7 +75,7 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(utils.AssetURL("/assets/images/favicon.png"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 35, Col: 88}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 36, Col: 88}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -87,7 +88,7 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(utils.AssetURL("/assets/css/output.css"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 36, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 37, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -105,27 +106,31 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</head><body><main class=\"min-h-screen\"><div class=\"container max-w-[800px] mx-auto px-8 py-16 space-y-8\"><div class=\"pb-8 flex justify-between items-end w-full\"><div class=\"flex h-full gap-3 items-end\"><div class=\"h-full w-24\"><img src=\"")
+		templ_7745c5c3_Err = avatar.Script().Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</head><body><main class=\"min-h-screen bg-gray-100/20 dark:bg-background\"><div class=\"container max-w-[800px] mx-auto px-4 md:px-8 py-16 space-y-8\"><div class=\"md:pb-8 flex flex-col gap-2 md:flex-row justify-between items-end w-full\"><div class=\"flex w-full h-full gap-3  items-end justify-between md:justify-start\"><div class=\"h-full w-24\"><img src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(utils.AssetURL("/assets/images/logo.png"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 52, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 54, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" alt=\"Krug's Feed Logo\" class=\"w-full h-full object-cover\"></div><div class=\"flex flex-col\"><h1 class=\"font-gotisch text-5xl font-bold text-foreground mb-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" alt=\"Krug's Feed Logo\" class=\"w-full h-full object-cover\"></div><div class=\"flex flex-col gap-2\"><h1 class=\"font-gotisch text-5xl font-bold text-foreground mb-0 text-right md:text-left leading-7\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 58, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 60, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -136,14 +141,14 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 			return templ_7745c5c3_Err
 		}
 		if len(opts) > 0 && opts[0].Description != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"text-md text-muted-foreground mb-0\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"text-xs md:text-md text-right md:text-left text-muted-foreground mb-0\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(opts[0].Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 60, Col: 76}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 62, Col: 111}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -154,7 +159,7 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></div><div class=\"h-full flex flex-col gap-1 justify-end items-end\"><h4 class=\"text-right w-full font-gotisch text-xs\">Click On Things</h4><div class=\"flex flex-row gap-1 p-1 border rounded-lg\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></div><div class=\"hidden h-full w-full md:w-fit md:flex flex-col gap-1 justify-end items-end\"><h4 class=\"hidden md:block text-right w-full font-gotisch text-xs\">Click On Things</h4><div class=\" w-full bg-white dark:bg-background md:w-fit justify-center flex flex-row gap-3 md:gap-1 p-1 border border-primary/15 rounded-lg \">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -170,7 +175,15 @@ func Layout(title string, disableNavButton string, opts ...LayoutOptions) templ.
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></main><script>\n\t\t\t// Re-initialize templUI components after HTMX swaps\n\t\t\tdocument.body.addEventListener(\"htmx:afterSwap\", (e) => {\n\t\t\t\tif (window.templUI) {\n\t\t\t\t\tObject.values(window.templUI).forEach(comp => {\n\t\t\t\t\t\tcomp.init?.(e.detail.elt);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\n\t\t\t// Re-initialize components after out-of-band swaps\n\t\t\tdocument.body.addEventListener(\"htmx:oobAfterSwap\", (e) => {\n\t\t\t\tif (window.templUI) {\n\t\t\t\t\tObject.values(window.templUI).forEach(comp => {\n\t\t\t\t\t\tcomp.init?.(e.detail.target);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\n\t\t\t// Cleanup before swap (for components with event listeners)\n\t\t\tdocument.body.addEventListener(\"htmx:beforeSwap\", (e) => {\n\t\t\t\tif (window.templUI) {\n\t\t\t\t\tObject.values(window.templUI).forEach(comp => {\n\t\t\t\t\t\tcomp.cleanup?.(e.detail.target);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"relative md:hidden w-full flex justify-center\"><div class=\"fixed bottom-5 flex gap-5 bg-white dark:bg-muted  p-3 rounded-lg shadow-xl border dark:shadow-none\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = NavButtonGroup(disableNavButton).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div></div></main><script>\n\t\t\t// Re-initialize templUI components after HTMX swaps\n\t\t\tdocument.body.addEventListener(\"htmx:afterSwap\", (e) => {\n\t\t\t\tif (window.templUI) {\n\t\t\t\t\tObject.values(window.templUI).forEach(comp => {\n\t\t\t\t\t\tcomp.init?.(e.detail.elt);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\n\t\t\t// Re-initialize components after out-of-band swaps\n\t\t\tdocument.body.addEventListener(\"htmx:oobAfterSwap\", (e) => {\n\t\t\t\tif (window.templUI) {\n\t\t\t\t\tObject.values(window.templUI).forEach(comp => {\n\t\t\t\t\t\tcomp.init?.(e.detail.target);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\n\t\t\t// Cleanup before swap (for components with event listeners)\n\t\t\tdocument.body.addEventListener(\"htmx:beforeSwap\", (e) => {\n\t\t\t\tif (window.templUI) {\n\t\t\t\t\tObject.values(window.templUI).forEach(comp => {\n\t\t\t\t\t\tcomp.cleanup?.(e.detail.target);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t});\n\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -185,10 +198,11 @@ type Navigation struct {
 }
 
 var navRoutes = []Navigation{
-	{Name: "feed", Href: "/", Icon: icon.Rows3(icon.Props{Size: 16})},
-	{Name: "collections", Href: "/collections", Icon: icon.SquareLibrary(icon.Props{Size: 16})},
-	{Name: "links", Href: "/links", Icon: icon.Link(icon.Props{Size: 16})},
-	{Name: "about", Href: "/about", Icon: icon.CircleQuestionMark(icon.Props{Size: 16})},
+	{Name: "feed", Href: "/", Icon: icon.Rows3(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "search", Href: "/search", Icon: icon.Search(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "collections", Href: "/collections", Icon: icon.SquareLibrary(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "links", Href: "/links", Icon: icon.Link(icon.Props{Size: 16, StrokeWidth: "1px"})},
+	{Name: "about", Href: "/about", Icon: icon.CircleQuestionMark(icon.Props{Size: 16, StrokeWidth: "1px"})},
 }
 
 func NavButtonGroup(disableButton string) templ.Component {
@@ -250,20 +264,20 @@ func NavButtonGroup(disableButton string) templ.Component {
 								}()
 							}
 							ctx = templ.InitializeContext(ctx)
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<span class=\"sr-only\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<span class=\"sr-only\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var12 string
 							templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(route.Name)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 133, Col: 40}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 142, Col: 40}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</span>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</span>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -274,6 +288,7 @@ func NavButtonGroup(disableButton string) templ.Component {
 							return nil
 						})
 						templ_7745c5c3_Err = button.Button(button.Props{
+							Class:    "opacity-100!",
 							Variant:  "link",
 							Disabled: true,
 							Size:     "icon",
@@ -290,7 +305,7 @@ func NavButtonGroup(disableButton string) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -309,7 +324,7 @@ func NavButtonGroup(disableButton string) templ.Component {
 						var templ_7745c5c3_Var14 string
 						templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(route.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 143, Col: 17}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 152, Col: 17}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 						if templ_7745c5c3_Err != nil {
@@ -369,20 +384,20 @@ func NavButtonGroup(disableButton string) templ.Component {
 								}()
 							}
 							ctx = templ.InitializeContext(ctx)
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<span class=\"sr-only\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<span class=\"sr-only\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var18 string
 							templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(route.Name)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 156, Col: 40}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 165, Col: 40}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</span>")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</span>")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -408,7 +423,7 @@ func NavButtonGroup(disableButton string) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, " ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, " ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -427,7 +442,7 @@ func NavButtonGroup(disableButton string) templ.Component {
 						var templ_7745c5c3_Var20 string
 						templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(route.Name)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 166, Col: 17}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/layout.templ`, Line: 175, Col: 17}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 						if templ_7745c5c3_Err != nil {

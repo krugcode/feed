@@ -1,11 +1,17 @@
 package views
 
 import (
+	"feed/components/avatar"
+	"feed/components/badge"
 	"feed/components/button"
 	"feed/components/form"
 	"feed/components/icon"
 	"feed/components/input"
+	"feed/components/popover"
 	"feed/components/selectbox"
+	"feed/components/tooltip"
+	"feed/utils"
+	"fmt"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -34,32 +40,313 @@ templ FeedPage(posts []*core.Record) {
 			{Property: "twitter:image", Content: "https://krugg.dev/assets/images/twitter-feed-card.png"},
 		},
 	}) {
-		@FeedPageContent()
+		@Posts(posts)
 	}
 }
 
-templ FeedPageContent() {
-	<div class=" flex flex-col gap-5">
-		<!--
-		<div class="flex flex-row gap-2">
-			@SearchInput()
-			@button.Button(button.Props{Variant: "outline", Class: "gap-3"}) {
-				Search
-				@icon.Search(icon.Props{
-					Size: 16,
-				})
+templ Posts(posts []*core.Record) {
+	<div class="flex flex-col divide-y-1 tracking-widest bg-white dark:bg-background dark:divide-border divide-primary/20 shadow-xl dark:shadow-none dark:border  shadow-red-200/20 divide-dashed  rounded-lg px-6">
+		if len(posts) == 0 {
+			<p class="text-gray-500 p-4">No posts found.</p>
+		} else {
+			for _, post := range posts {
+				@PostCard(post)
 			}
-		</div>-->
-		<div class="bg-card rounded-lg shadow-sm border border-border p-6">
-			<h2 class="text-xl font-semibold text-card-foreground mb-4">Getting Started</h2>
-			<p class="text-muted-foreground mb-4">
-				Your blog is now running with templUI components!
-			</p>
-			@button.Button() {
-				Get Started
-			}
-		</div>
+		}
 	</div>
+}
+
+templ PostCard(post *core.Record) {
+	<article class="post-card  py-6 hover:shadow-primary/20">
+		<!-- featured image -->
+		if featuredImage := post.ExpandedOne("featured_image"); featuredImage != nil {
+			<div class="mb-4">
+				<a href={ templ.SafeURL("/" + post.GetString("slug")) }>
+					<img
+						src={ "/api/files/uploads/" + featuredImage.Id + "/" + featuredImage.GetString("file") }
+						alt={ featuredImage.GetString("description") }
+						class="w-full aspect-square object-cover rounded-xl"
+					/>
+				</a>
+			</div>
+		}
+		<div class="w-full relative">
+			<div class="absolute -top-14 -left-2">
+				if contexts := GetPostContexts(post); len(contexts) > 0 {
+					<div class="mb-3">
+						<div class="inline-flex flex-wrap gap-1">
+							<h4 class="sr-only">Posted in the following contexts:</h4>
+							@avatar.Group(avatar.GroupProps{
+								Spacing: avatar.GroupSpacingLg,
+							}) {
+								for _, context := range contexts {
+									if logo := context.ExpandedOne("logo"); logo != nil {
+										@tooltip.Tooltip() {
+											@tooltip.Trigger(tooltip.TriggerProps{
+												For: "tooltip-avatar-" + context.GetString("title"),
+											}) {
+												@button.Button(button.Props{
+													Class:   "p-0",
+													Href:    "/contexts/" + context.GetString("title"),
+													Variant: "link",
+												}) {
+													@avatar.Avatar(avatar.Props{
+														Class:   "ring-white ",
+														InGroup: true,
+													}) {
+														@avatar.Image(avatar.ImageProps{
+															Class: "",
+															Src:   "/api/files/uploads/" + logo.Id + "/" + logo.GetString("file"),
+														})
+													}
+												}
+											}
+											@tooltip.Content(tooltip.ContentProps{
+												ID:            "tooltip-avatar-" + context.GetString("title"),
+												Position:      tooltip.PositionTop,
+												HoverDelay:    200,
+												HoverOutDelay: 100,
+											}) {
+												{ context.GetString("title") }
+											}
+										}
+									}
+								}
+							}
+						</div>
+					</div>
+				}
+			</div>
+			<!-- title and subtitle -->
+			<header class="mb-4 flex flex-col gap-2 md:flex-row justify-between">
+				<div class="flex flex-col gap-3 md:gap-1">
+					@button.Button(button.Props{
+						Class:   "pl-0 py-0 text-2xl  font-bold  whitespace-normal",
+						Href:    "/posts/" + post.GetString("slug"),
+						Variant: "link",
+					}) {
+						<h2 class="w-full leading-6 text-left  mb-0">{ post.GetString("title") }</h2>
+					}
+					if post.GetString("subtitle") != "" {
+						<p class="text-gray-600 text-sm">{ post.GetString("subtitle") }</p>
+					}
+				</div>
+				<div class="flex h-fit w-fit flex-row gap-1 p-1 border rounded-lg">
+					@DateButton(post)
+					if collections := GetPostCollections(post); len(collections) > 0 {
+						@CollectionsButton(post, collections)
+					}
+					if chapters := GetPostChapters(post); len(chapters) > 0 {
+						@ChaptersButton(post, chapters)
+					}
+				</div>
+			</header>
+			<!-- content preview -->
+			<div class="prose prose-sm mb-4 text-gray-800">
+				if summary := post.GetString("summary"); summary != "" {
+					<p class="text-gray-700 dark:text-gray-200 ">{ utils.TruncateString(summary, 150) }</p>
+				} else {
+					<p class="text-gray-700 dark:text-gray-200">{ utils.TruncateString(post.GetString("content"), 150) }</p>
+				}
+			</div>
+			<div class="flex flex-row justify-between items-center gap-5">
+				<!-- tags -->
+				if tags := post.ExpandedAll("tags"); len(tags) > 0 {
+					<div class="mb-4">
+						<div class="inline-flex flex-wrap gap-1">
+							for _, tag := range tags {
+								@badge.Badge(badge.Props{
+									Variant: badge.VariantOutline,
+								}) {
+									{ tag.GetString("title") }
+								}
+							}
+						</div>
+					</div>
+				}
+				@tooltip.Tooltip() {
+					@tooltip.Trigger(tooltip.TriggerProps{
+						For: "tooltip-default",
+					}) {
+						@button.Button(button.Props{
+							Class: "rounded-full h-15 w-15 text-2xl font-bold justify-center items-center ring-offset-3 hover:ring-4 hover:ring-primary hover:shadow-lg hover:shadow-primary/20 transition-all duration-400 ease-out", Href: "/posts/" + post.GetString("slug"),
+							Variant: "primary",
+						}) {
+							<span class="sr-only">Consume the slop</span>
+							@icon.Drumstick(icon.Props{Size: 20})
+						}
+					}
+					@tooltip.Content(tooltip.ContentProps{
+						ID:            "tooltip-default",
+						Position:      tooltip.PositionTop,
+						HoverDelay:    200,
+						HoverOutDelay: 100,
+					}) {
+						Consume The Slop
+					}
+				}
+			</div>
+		</div>
+	</article>
+}
+
+templ DateButton(post *core.Record) {
+	@popover.Trigger(popover.TriggerProps{
+		For: "date-popover-" + post.Id,
+	}) {
+		@button.Button(button.Props{
+			Size:    "icon",
+			Variant: "ghost",
+		}) {
+			<span class="sr-only">Article Dates</span>
+			@icon.Clock(icon.Props{Size: 16})
+		}
+	}
+	@popover.Content(popover.ContentProps{
+		ID: "date-popover-" + post.Id,
+	}) {
+		<div class="p-4 space-y-2 w-48">
+			<div class="flex text-sm border-b pb-2 mb-2">
+				<div class="font-medium text-gray-700">Published</div>
+			</div>
+			<!--
+			if post.GetString("updated") != post.GetString("created") {
+				<div class="text-sm">
+					<div class="font-medium text-gray-700">Last Updated</div>
+					<time class="text-gray-600" datetime={ post.GetString("updated") }>
+						{ utils.FormatDate(post.GetString("updated")) }
+					</time>
+				</div>
+			}-->
+			<time class="text-gray-600 pt-1 w-full">
+				{ utils.FormatDate(post.GetString("created")) }
+			</time>
+		</div>
+	}
+}
+
+templ ChaptersButton(post *core.Record, chapters []*core.Record) {
+	@popover.Trigger(popover.TriggerProps{
+		For: "chapters-popover-" + post.Id,
+	}) {
+		@button.Button(button.Props{
+			Size:    "icon",
+			Variant: "ghost",
+		}) {
+			<span class="sr-only">Table of Contents</span>
+			@icon.TableOfContents(icon.Props{Size: 16})
+		}
+	}
+	@popover.Content(popover.ContentProps{
+		ID: "chapters-popover-" + post.Id,
+	}) {
+		<div class="p-4 space-y-2 w-60">
+			<div class="text-sm flex flex-row justify-between">
+				<div class="font-medium text-gray-700">Table of Contents</div>
+				<div class="text-xs text-gray-500">
+					if len(chapters) == 1 {
+						1 chapter
+					} else {
+						{ fmt.Sprintf("%d chapters", len(chapters)) }
+					}
+				</div>
+			</div>
+			<div class="space-y-1 pt-1 border-t max-h-80 overflow-y-auto">
+				for _, chapter := range chapters {
+					@button.Button(button.Props{
+						Class:   "w-full justify-between px-2",
+						Href:    "/posts/" + post.GetString("slug") + "#" + chapter.GetString("slug"),
+						Size:    "icon",
+						Variant: "ghost",
+					}) {
+						<span class="sr-only">Table of Contents</span>
+						{ utils.TruncateString(chapter.GetString("title"), 20) }
+						@icon.ChevronRight(icon.Props{Size: 14})
+					}
+				}
+			</div>
+		</div>
+	}
+}
+
+templ CollectionsButton(post *core.Record, collections []*core.Record) {
+	@popover.Trigger(popover.TriggerProps{
+		For: "collections-popover-" + post.Id,
+	}) {
+		@button.Button(button.Props{
+			Size:    "icon",
+			Variant: "ghost",
+		}) {
+			<span class="sr-only">Collections</span>
+			@icon.SquareLibrary(icon.Props{Size: 16})
+		}
+	}
+	@popover.Content(popover.ContentProps{
+		ID: "collections-popover-" + post.Id,
+	}) {
+		<div class="p-4 space-y-2 w-60">
+			<div class="text-sm flex flex-row justify-between">
+				<div class="font-medium text-gray-700">
+					if len(collections) > 1 {
+						Collections
+					} else {
+						Collection
+					}
+				</div>
+				<div class="text-xs text-gray-500">
+					{ fmt.Sprintf("Included in %d series", len(collections)) }
+				</div>
+			</div>
+			<div class="space-y-2 pt-1 border-t">
+				for _, collection := range collections {
+					@button.Button(button.Props{
+						Class:   "w-full justify-between px-2",
+						Href:    "/collections/" + collection.GetString("slug"),
+						Size:    "icon",
+						Variant: "ghost",
+					}) {
+						{ collection.GetString("title") }
+						@icon.ChevronRight(icon.Props{Size: 14})
+					}
+				}
+			</div>
+		</div>
+	}
+}
+
+func GetPostTags(post *core.Record) []*core.Record {
+	return post.ExpandedAll("tags")
+}
+
+func GetPostFeaturedImage(post *core.Record) *core.Record {
+	return post.ExpandedOne("featured_image")
+}
+
+func GetPostContexts(post *core.Record) []*core.Record {
+	if contexts := post.Get("expanded_contexts"); contexts != nil {
+		if ctxSlice, ok := contexts.([]*core.Record); ok {
+			return ctxSlice
+		}
+	}
+	return nil
+}
+
+func GetPostCollections(post *core.Record) []*core.Record {
+	if collections := post.Get("expanded_collections"); collections != nil {
+		if collSlice, ok := collections.([]*core.Record); ok {
+			return collSlice
+		}
+	}
+	return nil
+}
+
+func GetPostChapters(post *core.Record) []*core.Record {
+	if chapters := post.Get("expanded_chapters"); chapters != nil {
+		if chapSlice, ok := chapters.([]*core.Record); ok {
+			return chapSlice
+		}
+	}
+	return nil
 }
 
 templ SearchInput() {

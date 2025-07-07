@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/pocketbase/pocketbase/core"
 
-func PostPage(post *core.Record) templ.Component {
+func FeedSearchPage(post *core.Record) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -49,7 +49,7 @@ func PostPage(post *core.Record) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = Layout("The Links", "feed", LayoutOptions{Description: "A linktree is a series of tubes"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Layout("The Feed", "feed", LayoutOptions{Description: "Searching for stuff"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

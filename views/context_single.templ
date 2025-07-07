@@ -1,0 +1,10 @@
+package views
+
+import "github.com/pocketbase/pocketbase/core"
+
+templ ContextSinglePage(collections []*core.Record) {
+	@Layout("The Collections", "collections", LayoutOptions{
+		Description: "Cells within cells, interlinked",
+	}) {
+	}
+}

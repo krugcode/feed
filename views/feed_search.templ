@@ -1,0 +1,9 @@
+package views
+
+import "github.com/pocketbase/pocketbase/core"
+
+templ FeedSearchPage(post *core.Record) {
+	@Layout("The Feed", "feed", LayoutOptions{Description: "Searching for stuff"}) {
+		@LinkPageContent()
+	}
+}

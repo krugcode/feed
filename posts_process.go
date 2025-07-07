@@ -3,11 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,8 +21,10 @@ type PostFrontmatter struct {
 	Contexts           []string `yaml:"contexts"`
 	Collections        []string `yaml:"collections"`
 	IsVisible          bool     `yaml:"is_visible"`
+	FeaturedImage      string   `yaml:"featured_image"`
 	CrosspostInstagram bool     `yaml:"crosspost_instagram"`
 	CrosspostThreads   bool     `yaml:"crosspost_threads"`
+	Summary            string   `yaml:"summary"`
 }
 
 type Chapter struct {
@@ -37,7 +36,6 @@ type Chapter struct {
 }
 
 func (app *App) processPost(re *core.RequestEvent, isUpdate bool, postID string) error {
-	// Read the markdown content from request body
 	body := re.Request.Body
 	defer body.Close()
 
@@ -52,14 +50,13 @@ func (app *App) processPost(re *core.RequestEvent, isUpdate bool, postID string)
 	}
 
 	content := strings.Join(lines, "\n")
+	app.pb.Logger().Info(content)
 
-	// Parse frontmatter and content
-	frontmatter, markdownContent, err := parseFrontmatter(content)
+	frontmatter, markdownContent, err := app.parseFrontmatter(content)
 	if err != nil {
 		return re.BadRequestError("Failed to parse frontmatter", err)
 	}
 
-	// Create or update the post
 	var post *core.Record
 	if isUpdate {
 		post, err = app.pb.FindRecordById("posts", postID)
@@ -74,62 +71,52 @@ func (app *App) processPost(re *core.RequestEvent, isUpdate bool, postID string)
 		post = core.NewRecord(collection)
 	}
 
-	// Generate slug from title (only for new posts or if slug is empty)
+	var slug string
 	if !isUpdate || post.GetString("slug") == "" {
-		slug := generateSlug(frontmatter.Title)
+		slug = app.generateUniqueSlug(frontmatter.Title, "posts")
 		post.Set("slug", slug)
+	} else {
+		slug = post.GetString("slug")
 	}
 
-	// Process assets (images/files) in markdown content and get updated content
-	updatedMarkdownContent, uploadedAssets, err := app.processMarkdownAssets(markdownContent)
-	if err != nil {
-		log.Printf("Error processing markdown assets: %v", err)
-		updatedMarkdownContent = markdownContent // Use original content if processing fails
+	if appURL := os.Getenv("APP_URL"); appURL != "" {
+		permalink := fmt.Sprintf("%s/%s", strings.TrimRight(appURL, "/"), slug)
+		post.Set("permalink", permalink)
 	}
 
-	// Set post fields
 	post.Set("title", frontmatter.Title)
 	post.Set("subtitle", frontmatter.Subtitle)
-	post.Set("content", updatedMarkdownContent)
+	post.Set("content", markdownContent)
 	post.Set("type", "Blog")
 	post.Set("is_visible", frontmatter.IsVisible)
+	post.Set("summary", frontmatter.Summary)
 
-	// Save the post first to get an ID
+	if frontmatter.FeaturedImage != "" && len(frontmatter.FeaturedImage) == 15 && !strings.Contains(frontmatter.FeaturedImage, "/") {
+		post.Set("featured_image", frontmatter.FeaturedImage)
+	}
+
 	if err := app.pb.Save(post); err != nil {
 		return re.BadRequestError("Failed to save post", err)
 	}
 
-	// Process tags
+	// process tags
 	if err := app.processTags(post, frontmatter.Tags); err != nil {
 		log.Printf("Error processing tags: %v", err)
 	}
 
-	// Process contexts
+	// process contexts
 	if err := app.processContexts(post, frontmatter.Contexts); err != nil {
 		log.Printf("Error processing contexts: %v", err)
 	}
 
-	// Process collections
+	// process collections
 	if err := app.processCollections(post, frontmatter.Collections); err != nil {
-		log.Printf("Error processing collections: %v", err)
+		app.pb.Logger().Error("Error processing collections: %v", err)
 	}
 
-	// Process chapters (use updated content)
-	if err := app.processChapters(post, updatedMarkdownContent); err != nil {
-		log.Printf("Error processing chapters: %v", err)
-	}
-
-	// Link uploaded assets to the post
-	if len(uploadedAssets) > 0 {
-		var uploadIDs []string
-		for _, upload := range uploadedAssets {
-			uploadIDs = append(uploadIDs, upload.Id)
-		}
-		post.Set("uploads", uploadIDs)
-		// Save the post again to update the uploads
-		if err := app.pb.Save(post); err != nil {
-			log.Printf("Failed to update post uploads: %v", err)
-		}
+	// Process chapters
+	if err := app.processChapters(post, markdownContent); err != nil {
+		app.pb.Logger().Error("Error processing chapters", err)
 	}
 
 	// Process crosspost queue
@@ -147,7 +134,7 @@ func (app *App) processPost(re *core.RequestEvent, isUpdate bool, postID string)
 	})
 }
 
-func parseFrontmatter(content string) (*PostFrontmatter, string, error) {
+func (app *App) parseFrontmatter(content string) (*PostFrontmatter, string, error) {
 	lines := strings.Split(content, "\n")
 
 	if len(lines) < 3 || lines[0] != "---" {
@@ -170,6 +157,7 @@ func parseFrontmatter(content string) (*PostFrontmatter, string, error) {
 	}
 
 	frontmatterContent := strings.Join(frontmatterLines, "\n")
+	app.pb.Logger().Info(frontmatterContent)
 	markdownContent := strings.Join(lines[contentStart:], "\n")
 
 	var frontmatter PostFrontmatter
@@ -228,211 +216,6 @@ func (app *App) processTags(post *core.Record, tagNames []string) error {
 	return nil
 }
 
-func (app *App) processMarkdownAssets(content string) (string, []*core.Record, error) {
-	// Regex to match markdown image syntax: ![alt](url "title")
-	imageRegex := regexp.MustCompile(`!\[([^\]]*)\]\(([^)]+)(?:\s+"([^"]*)")?\)`)
-
-	var uploadedAssets []*core.Record
-	updatedContent := content
-
-	// Find all image matches
-	matches := imageRegex.FindAllStringSubmatch(content, -1)
-
-	for _, match := range matches {
-		if len(match) < 3 {
-			continue
-		}
-
-		altText := match[1]
-		originalURL := strings.TrimSpace(match[2])
-		title := ""
-		if len(match) > 3 {
-			title = match[3]
-		}
-
-		// Skip if URL is already a PocketBase URL or relative path
-		if strings.Contains(originalURL, "/api/files/") || strings.HasPrefix(originalURL, "/") && !strings.HasPrefix(originalURL, "/home/") {
-			continue
-		}
-
-		// Process the asset
-		uploadRecord, err := app.processAsset(originalURL, altText, title)
-		if err != nil {
-			log.Printf("Failed to process asset %s: %v", originalURL, err)
-			continue
-		}
-
-		if uploadRecord != nil {
-			uploadedAssets = append(uploadedAssets, uploadRecord)
-
-			// Generate PocketBase public URL for the upload
-			pbURL := fmt.Sprintf("/api/files/%s/%s/%s",
-				uploadRecord.Collection().Name,
-				uploadRecord.Id,
-				uploadRecord.GetString("file"))
-
-			// Replace the original URL with the PocketBase URL in the content
-			originalMarkdown := match[0]
-			var newMarkdown string
-			if title != "" {
-				newMarkdown = fmt.Sprintf(`![%s](%s "%s")`, altText, pbURL, title)
-			} else {
-				newMarkdown = fmt.Sprintf(`![%s](%s)`, altText, pbURL)
-			}
-
-			updatedContent = strings.Replace(updatedContent, originalMarkdown, newMarkdown, 1)
-		}
-	}
-
-	return updatedContent, uploadedAssets, nil
-}
-
-func (app *App) processAsset(assetURL, altText, title string) (*core.Record, error) {
-	collection, err := app.pb.FindCollectionByNameOrId("uploads")
-	if err != nil {
-		return nil, fmt.Errorf("uploads collection not found: %v", err)
-	}
-
-	uploadRecord := core.NewRecord(collection)
-
-	var fileData []byte
-	var filename string
-
-	// Determine if it's a local file or remote URL
-	if strings.HasPrefix(assetURL, "http://") || strings.HasPrefix(assetURL, "https://") {
-		// Remote file
-		fileData, filename, err = app.downloadRemoteFile(assetURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to download remote file: %v", err)
-		}
-		uploadRecord.Set("url", assetURL)
-		uploadRecord.Set("credit_source_url", assetURL)
-	} else {
-		// Local file
-		fileData, err = os.ReadFile(assetURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read local file: %v", err)
-		}
-		filename = filepath.Base(assetURL)
-	}
-
-	// Set description from alt text and title
-	description := altText
-	if title != "" && title != altText {
-		if altText != "" {
-			description = fmt.Sprintf("%s - %s", altText, title)
-		} else {
-			description = title
-		}
-	}
-	uploadRecord.Set("description", description)
-
-	// Determine file type based on extension
-	fileType := "Image" // Default
-	ext := strings.ToLower(filepath.Ext(filename))
-	switch ext {
-	case ".mp4", ".avi", ".mov", ".mkv", ".webm":
-		fileType = "Video"
-	case ".md", ".txt":
-		fileType = "Markdown"
-	}
-	uploadRecord.Set("type", fileType)
-
-	// Create a temporary file that will persist during the upload
-	tempFile, err := os.CreateTemp("", "upload_*_"+filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create temp file: %v", err)
-	}
-	tempPath := tempFile.Name()
-	defer os.Remove(tempPath) // Clean up after we're done
-
-	// Write data to temp file
-	if _, err := tempFile.Write(fileData); err != nil {
-		tempFile.Close()
-		return nil, fmt.Errorf("failed to write temp file: %v", err)
-	}
-	tempFile.Close()
-
-	// Use filesystem approach to set the file
-	form := map[string]any{
-		"description": description,
-		"type":        fileType,
-	}
-
-	if uploadRecord.GetString("url") != "" {
-		form["url"] = uploadRecord.GetString("url")
-		form["credit_source_url"] = uploadRecord.GetString("credit_source_url")
-	}
-
-	// Load form data
-	uploadRecord.Load(form)
-
-	// Open the temp file for reading
-	file, err := os.Open(tempPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open temp file: %v", err)
-	}
-	defer file.Close()
-
-	// Set file field using the file reader
-	uploadRecord.Set("file", file)
-
-	// Save the upload record
-	if err := app.pb.Save(uploadRecord); err != nil {
-		return nil, fmt.Errorf("failed to save upload record: %v", err)
-	}
-
-	log.Printf("Successfully uploaded asset: %s -> %s", assetURL, filename)
-	return uploadRecord, nil
-}
-
-func (app *App) downloadRemoteFile(url string) ([]byte, string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// Extract filename from URL or content-disposition header
-	filename := filepath.Base(url)
-	if contentDisp := resp.Header.Get("Content-Disposition"); contentDisp != "" {
-		// Try to extract filename from Content-Disposition header
-		if matches := regexp.MustCompile(`filename="([^"]+)"`).FindStringSubmatch(contentDisp); len(matches) > 1 {
-			filename = matches[1]
-		}
-	}
-
-	// If no extension, try to guess from content-type
-	if filepath.Ext(filename) == "" {
-		contentType := resp.Header.Get("Content-Type")
-		switch {
-		case strings.Contains(contentType, "image/jpeg"):
-			filename += ".jpg"
-		case strings.Contains(contentType, "image/png"):
-			filename += ".png"
-		case strings.Contains(contentType, "image/gif"):
-			filename += ".gif"
-		case strings.Contains(contentType, "image/webp"):
-			filename += ".webp"
-		case strings.Contains(contentType, "video/mp4"):
-			filename += ".mp4"
-		default:
-			filename += ".bin"
-		}
-	}
-
-	return data, filename, nil
-}
-
 func (app *App) processContexts(post *core.Record, contextNames []string) error {
 	if len(contextNames) == 0 {
 		return nil
@@ -483,7 +266,7 @@ func (app *App) processCollections(post *core.Record, collectionNames []string) 
 		return nil
 	}
 
-	// First, delete existing collection_posts for this post
+	// delete existing connections
 	if post.Id != "" {
 		existingCollectionPosts, _ := app.pb.FindRecordsByFilter("collection_posts", "post = {:postId}", "-created", 0, 0, map[string]any{"postId": post.Id})
 		for _, cp := range existingCollectionPosts {
@@ -497,14 +280,31 @@ func (app *App) processCollections(post *core.Record, collectionNames []string) 
 			continue
 		}
 
-		// Find the collection by title
+		// find or create the collection by title
 		collection, err := app.pb.FindFirstRecordByFilter("collections", "title = {:title}", map[string]any{"title": collectionName})
 		if err != nil {
-			log.Printf("Collection not found: %s", collectionName)
-			continue
+			// collection doesn't exist, create it
+			log.Printf("Collection '%s' not found, creating it", collectionName)
+
+			collectionsCollection, err := app.pb.FindCollectionByNameOrId("collections")
+			if err != nil {
+				log.Printf("Collections collection not found: %v", err)
+				continue
+			}
+
+			collection = core.NewRecord(collectionsCollection)
+			collection.Set("title", collectionName)
+			collection.Set("slug", app.generateUniqueSlug(collectionName, "collections"))
+			collection.Set("description", "")
+
+			if err := app.pb.Save(collection); err != nil {
+				log.Printf("Failed to create collection %s: %v", collectionName, err)
+				continue
+			}
+			log.Printf("Successfully created collection: %s", collectionName)
 		}
 
-		// Create collection_posts junction record
+		// create collection_posts junction record
 		collectionPostsCollection, err := app.pb.FindCollectionByNameOrId("collection_posts")
 		if err != nil {
 			log.Printf("Collection_posts collection not found: %v", err)
@@ -518,6 +318,8 @@ func (app *App) processCollections(post *core.Record, collectionNames []string) 
 
 		if err := app.pb.Save(collectionPost); err != nil {
 			log.Printf("Failed to create collection_post for %s: %v", collectionName, err)
+		} else {
+			log.Printf("Successfully linked post to collection: %s", collectionName)
 		}
 	}
 
@@ -525,7 +327,7 @@ func (app *App) processCollections(post *core.Record, collectionNames []string) 
 }
 
 func (app *App) processChapters(post *core.Record, markdownContent string) error {
-	// First, delete existing chapters for this post
+	//  delete existing chapters for this post
 	if post.Id != "" {
 		existingChapters, _ := app.pb.FindRecordsByFilter("post_chapters", "post = {:postId}", "-created", 0, 0, map[string]any{"postId": post.Id})
 		for _, chapter := range existingChapters {
@@ -533,8 +335,13 @@ func (app *App) processChapters(post *core.Record, markdownContent string) error
 		}
 	}
 
-	chapters := parseChapters(markdownContent)
-	chapterRecords := make(map[string]*core.Record) // slug -> record for parent lookups
+	chapters := app.parseChapters(markdownContent)
+	if len(chapters) == 0 {
+		log.Printf("No chapters found in post content")
+		return nil
+	}
+
+	chapterRecords := make(map[string]*core.Record)
 
 	collection, err := app.pb.FindCollectionByNameOrId("post_chapters")
 	if err != nil {
@@ -542,42 +349,49 @@ func (app *App) processChapters(post *core.Record, markdownContent string) error
 	}
 
 	for i, chapter := range chapters {
+		app.pb.Logger().Info(chapter.Title)
 		chapterRecord := core.NewRecord(collection)
-		chapterSlug := generateSlug(chapter.Title)
+		chapterSlug := app.generateUniqueSlug(chapter.Title, "post_chapters")
 
 		chapterRecord.Set("post", post.Id)
 		chapterRecord.Set("title", chapter.Title)
 		chapterRecord.Set("slug", chapterSlug)
+
+		// set chapter permalink - just the fragment since it's within a post
 		chapterRecord.Set("permalink", fmt.Sprintf("#%s", chapterSlug))
 		chapterRecord.Set("order", i)
 
-		// Handle parent chapter relationships
+		// handle parent chapter relationships
 		if chapter.Level > 1 && chapter.ParentID != "" {
 			if parentRecord, exists := chapterRecords[chapter.ParentID]; exists {
 				chapterRecord.Set("parent_chapter", parentRecord.Id)
+				log.Printf("Setting parent for chapter '%s' to '%s'", chapter.Title, parentRecord.GetString("title"))
 			}
 		}
 
 		if err := app.pb.Save(chapterRecord); err != nil {
-			log.Printf("Failed to create chapter %s: %v", chapter.Title, err)
+			app.pb.Logger().Error("Failed to create chapter", chapter.Title, err)
 			continue
 		}
 
 		chapterRecords[chapterSlug] = chapterRecord
+		log.Printf("Successfully created chapter: %s (level %d)", chapter.Title, chapter.Level)
 	}
 
+	log.Printf("Successfully processed %d chapters", len(chapterRecords))
 	return nil
 }
 
-func parseChapters(content string) []Chapter {
+func (app *App) parseChapters(content string) []Chapter {
 	var chapters []Chapter
 	lines := strings.Split(content, "\n")
 
 	headingRegex := regexp.MustCompile(`^(#{1,6})\s+(.+)$`)
-	var parentStack []string // Keep track of parent slugs by level
+	var parentStack []string
 
 	for _, line := range lines {
 		matches := headingRegex.FindStringSubmatch(line)
+
 		if len(matches) == 3 {
 			level := len(matches[1])
 			title := strings.TrimSpace(matches[2])
@@ -586,14 +400,12 @@ func parseChapters(content string) []Chapter {
 				continue
 			}
 
-			// Adjust parent stack for current level
-			if level <= len(parentStack) {
+			if level-1 > len(parentStack) {
+				for len(parentStack) < level-1 {
+					parentStack = append(parentStack, "")
+				}
+			} else if level-1 < len(parentStack) {
 				parentStack = parentStack[:level-1]
-			}
-
-			// Pad parent stack if needed
-			for len(parentStack) < level-1 {
-				parentStack = append(parentStack, "")
 			}
 
 			var parentID string
@@ -610,12 +422,12 @@ func parseChapters(content string) []Chapter {
 
 			chapters = append(chapters, chapter)
 
-			// Add current chapter slug to parent stack
-			currentSlug := generateSlug(title)
-			if level <= len(parentStack) {
-				parentStack = parentStack[:level-1]
+			currentSlug := app.generateSlugBase(title)
+			if level-1 == len(parentStack) {
+				parentStack = append(parentStack, currentSlug)
+			} else {
+				parentStack[level-1] = currentSlug
 			}
-			parentStack = append(parentStack, currentSlug)
 		}
 	}
 
@@ -628,7 +440,6 @@ func (app *App) processCrosspostQueue(post *core.Record, frontmatter *PostFrontm
 	}
 
 	if frontmatter.CrosspostInstagram {
-		// Find an Instagram account (you might want to make this configurable)
 		instagramAccounts, err := app.pb.FindRecordsByFilter("instagram_accounts", "", "-created", 1, 0)
 		if err == nil && len(instagramAccounts) > 0 {
 			collection, err := app.pb.FindCollectionByNameOrId("crosspost_queue")
@@ -650,26 +461,67 @@ func (app *App) processCrosspostQueue(post *core.Record, frontmatter *PostFrontm
 		}
 	}
 
-	// Note: Threads posting would be similar, but I don't see a threads-specific table
-	// You might want to add crosspost_threads logic here if you have that setup
-
 	return nil
 }
 
-func generateSlug(title string) string {
-	// Convert to lowercase
+func (app *App) generateUniqueSlug(title, collectionName string) string {
+	baseSlug := app.generateSlugBase(title)
+
+	if !app.slugExists(baseSlug, collectionName) {
+		return baseSlug
+	}
+
+	// if it exists, try with a counter
+	counter := 1
+	for {
+		candidateSlug := fmt.Sprintf("%s-%d", baseSlug, counter)
+		if !app.slugExists(candidateSlug, collectionName) {
+			return candidateSlug
+		}
+		counter++
+
+		if counter > 5 {
+			// fall back to timestamp
+			timestamp := strconv.FormatInt(time.Now().UnixNano(), 10)
+			return fmt.Sprintf("%s-%s", baseSlug, timestamp)
+		}
+	}
+}
+
+func (app *App) generateSlugBase(title string) string {
+
 	slug := strings.ToLower(title)
 
-	// Replace spaces and special characters with hyphens
 	reg := regexp.MustCompile(`[^a-z0-9]+`)
 	slug = reg.ReplaceAllString(slug, "-")
 
-	// Remove leading/trailing hyphens
 	slug = strings.Trim(slug, "-")
 
-	// Add timestamp to ensure uniqueness
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	slug = fmt.Sprintf("%s-%s", slug, timestamp)
-
 	return slug
+}
+
+func (app *App) slugExists(slug, collectionName string) bool {
+	var filter string
+	var params map[string]any
+
+	if collectionName == "posts" {
+		// for posts, also check permalink conflicts if app_url is set
+		if appURL := os.Getenv("APP_URL"); appURL != "" {
+			expectedPermalink := fmt.Sprintf("%s/%s", strings.TrimRight(appURL, "/"), slug)
+			filter = "slug = {:slug} || permalink = {:permalink}"
+			params = map[string]any{
+				"slug":      slug,
+				"permalink": expectedPermalink,
+			}
+		} else {
+			filter = "slug = {:slug}"
+			params = map[string]any{"slug": slug}
+		}
+	} else {
+		filter = "slug = {:slug}"
+		params = map[string]any{"slug": slug}
+	}
+
+	record, err := app.pb.FindFirstRecordByFilter(collectionName, filter, params)
+	return err == nil && record != nil
 }
